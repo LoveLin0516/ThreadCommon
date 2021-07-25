@@ -53,14 +53,15 @@ public class AppExecutors {
      * @param currentCallback currentCallback
      * @param <T>             T
      */
-    public <T> void execute(@NonNull final OnResult<T> onResult,
-                            @NonNull final OnCallBack<T> currentCallback) {
+    public <T> void execute(@NonNull final Callable<T> onResult,
+                            @NonNull final Consumer<T> currentCallback) {
         execute(onResult, currentCallback, null);
     }
 
     /**
-     * 同{@link AppExecutors#execute(code.example.threadcommon.utils.AppExecutors.OnResult,
-     * code.example.threadcommon.utils.AppExecutors.OnCallBack)}
+     * 同{@link AppExecutors#execute(code.example.threadcommon.utils.Callable,
+     * code.example.threadcommon.utils.Consumer)}
+     *
      * <p>
      * <p>
      * 会辅助开发者捕获异常，并在当前线程中的errorAction中进行回调
@@ -70,9 +71,9 @@ public class AppExecutors {
      * @param errorAction     errorAction
      * @param <T>             <T>
      */
-    public <T> void execute(@NonNull final OnResult<T> onResult,
-                            @NonNull final OnCallBack<T> currentCallback,
-                            final OnCallBack<Throwable> errorAction) {
+    public <T> void execute(@NonNull final Callable<T> onResult,
+                            @NonNull final Consumer<T> currentCallback,
+                            final Consumer<Throwable> errorAction) {
         ObjectHelper.requireNonNullList(sCurrentExecutor, onResult, currentCallback);
 
         if (sCurrentExecutor != null) {
@@ -80,12 +81,12 @@ public class AppExecutors {
                 @Override
                 public void run() {
                     if (errorAction == null) {
-                        currentCallback.invoke(onResult.execute());
+                        currentCallback.accept(onResult.call());
                     } else {
                         try {
-                            currentCallback.invoke(onResult.execute());
+                            currentCallback.accept(onResult.call());
                         } catch (Exception e) {
-                            errorAction.invoke(e);
+                            errorAction.accept(e);
                         }
                     }
 
@@ -106,14 +107,17 @@ public class AppExecutors {
      * @param <T>            T
      */
     public <T> void execute(@NonNull final LifecycleOwner lifecycleOwner,
-                            @NonNull final OnResult<T> onResult,
-                            @NonNull final OnUICallBack<T> callback) {
+                            @NonNull final Callable<T> onResult,
+                            @NonNull final UIConsumer<T> callback) {
 
         execute(lifecycleOwner, onResult, callback, null);
     }
 
     /**
-     * 同 {@link AppExecutors#execute(androidx.lifecycle.LifecycleOwner, code.example.threadcommon.utils.AppExecutors.OnResult, code.example.threadcommon.utils.AppExecutors.OnUICallBack)}
+     * 同 {@link AppExecutors#execute(androidx.lifecycle.LifecycleOwner,
+     * code.example.threadcommon.utils.Callable,
+     * code.example.threadcommon.utils.UIConsumer)}
+     *
      * <p>
      * <p>
      * 会辅助开发者捕获异常，并在UI线程中的errorAction中进行回调
@@ -124,9 +128,9 @@ public class AppExecutors {
      * @param <T>            <T>
      */
     public <T> void execute(@NonNull final LifecycleOwner lifecycleOwner,
-                            @NonNull final OnResult<T> onResult,
-                            @NonNull final OnUICallBack<T> callback,
-                            final OnUICallBack<Throwable> errorAction) {
+                            @NonNull final Callable<T> onResult,
+                            @NonNull final UIConsumer<T> callback,
+                            final UIConsumer<Throwable> errorAction) {
 
         ObjectHelper.requireNonNullList(sCurrentExecutor, lifecycleOwner, onResult, callback);
 
@@ -137,11 +141,11 @@ public class AppExecutors {
                 @Override
                 public void run() {
                     if (errorAction == null) {
-                        final T t = onResult.execute();
+                        final T t = onResult.call();
                         handleInUIThread(lifecycleOwnerRef, callback, t);
                     } else {
                         try {
-                            final T t = onResult.execute();
+                            final T t = onResult.call();
                             //try catch 无法在线程执行的外部捕获异常，所以要捕获此时onCallback.invoke的异常
                             //需要将errorAction传入，在线程内部执行时进行捕获
                             handleInUIThreadWithCatch(lifecycleOwnerRef, callback, errorAction, t);
@@ -156,8 +160,8 @@ public class AppExecutors {
     }
 
     private <T> void handleInUIThreadWithCatch(WeakReference<LifecycleOwner> lifecycleOwnerRef,
-                                               final OnUICallBack<T> callback,
-                                               final OnUICallBack<Throwable> errorAction,
+                                               final UIConsumer<T> callback,
+                                               final UIConsumer<Throwable> errorAction,
                                                final T t) {
         if (lifecycleOwnerRef.get() != null) {
             Log.d("ansen", "state--->" +
@@ -170,9 +174,9 @@ public class AppExecutors {
                     @Override
                     public void run() {
                         try {
-                            callback.invoke(t);
+                            callback.accept(t);
                         } catch (Exception e) {
-                            errorAction.invoke(e);
+                            errorAction.accept(e);
                         }
                     }
                 });
@@ -181,7 +185,7 @@ public class AppExecutors {
     }
 
     private <T> void handleInUIThread(WeakReference<LifecycleOwner> lifecycleOwnerRef,
-                                      final OnUICallBack<T> callback,
+                                      final UIConsumer<T> callback,
                                       final T t) {
         if (lifecycleOwnerRef.get() != null) {
             Log.d("ansen", "state--->" +
@@ -193,7 +197,7 @@ public class AppExecutors {
                 ThreadUtil.runOnUIThread(new Runnable() {
                     @Override
                     public void run() {
-                        callback.invoke(t);
+                        callback.accept(t);
                     }
                 });
             }
@@ -233,18 +237,6 @@ public class AppExecutors {
 
     public static final class MainHolder {
         public static Executor main = new MainExecutor();
-    }
-
-    public interface OnResult<T> {
-        T execute();
-    }
-
-    public interface OnCallBack<T> {
-        void invoke(T t);
-    }
-
-    public interface OnUICallBack<T> {
-        void invoke(T t);
     }
 
 }

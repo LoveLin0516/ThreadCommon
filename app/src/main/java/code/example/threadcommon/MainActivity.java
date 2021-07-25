@@ -15,7 +15,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import code.example.threadcommon.utils.AppExecutors;
+import code.example.threadcommon.utils.Callable;
 import code.example.threadcommon.utils.ThreadUtil;
+import code.example.threadcommon.utils.UIConsumer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -148,64 +150,64 @@ public class MainActivity extends AppCompatActivity {
 
 
         //测试延时下，不设置errorAction的崩溃相关，onResult一定是会执行的，不管页面是否销毁
-//        AppExecutors.mainThread().execute(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d("ansen", "thread-name->" + Thread.currentThread().getName());
-//                Log.d("ansen", "thread-id->" + Thread.currentThread().getId());
-//
-//                AppExecutors.io().execute(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        Log.d("ansen", "thread-name->" + Thread.currentThread().getName());
-//                        Log.d("ansen", "thread-id->" + Thread.currentThread().getId());
-//
-//                        ThreadUtil.postOnUIThreadDelayed(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                AppExecutors.io().execute(MainActivity.this,
-//                                        new AppExecutors.OnResult<String>() {
-//                                            @Override
-//                                            public String execute() {
-//                                                Log.d("ansen", "thread-name--1-->" + Thread.currentThread().getName());
-//                                                Log.d("ansen", "thread-id--1-->" + Thread.currentThread().getId());
-//
-//                                                String test = null;
-//                                                test.toString();
-//                                                return null;
-//                                            }
-//                                        }, new AppExecutors.OnUICallBack<String>() {
-//                                            @Override
-//                                            public void invoke(String s) {
-//                                                Log.d("ansen", "thread-name--2-->" + Thread.currentThread().getName());
-//                                                Log.d("ansen", "thread-id--2-->" + Thread.currentThread().getId());
-//                                            }
-//                                        });
-//                            }
-//                        }, 2000L);
-//
-//                    }
-//                });
-//            }
-//        });
-
-        //测试主线程切换相关
-        AppExecutors.io().execute(new Runnable() {
+        AppExecutors.mainThread().execute(new Runnable() {
             @Override
             public void run() {
                 Log.d("ansen", "thread-name->" + Thread.currentThread().getName());
                 Log.d("ansen", "thread-id->" + Thread.currentThread().getId());
 
-                AppExecutors.mainThread().execute(new Runnable() {
-
+                AppExecutors.io().execute(new Runnable() {
                     @Override
                     public void run() {
-                        Log.d("ansen", "thread-name--1-->" + Thread.currentThread().getName());
-                        Log.d("ansen", "thread-id--1-->" + Thread.currentThread().getId());
+                        Log.d("ansen", "thread-name->" + Thread.currentThread().getName());
+                        Log.d("ansen", "thread-id->" + Thread.currentThread().getId());
+
+                        ThreadUtil.postOnUIThreadDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                AppExecutors.io().execute(MainActivity.this,
+                                        new Callable<String>() {
+                                            @Override
+                                            public String call() {
+                                                Log.d("ansen", "thread-name--1-->" + Thread.currentThread().getName());
+                                                Log.d("ansen", "thread-id--1-->" + Thread.currentThread().getId());
+
+                                                String test = null;
+                                                test.toString();
+                                                return null;
+                                            }
+                                        }, new UIConsumer<String>() {
+                                            @Override
+                                            public void accept(String s) {
+                                                Log.d("ansen", "thread-name--2-->" + Thread.currentThread().getName());
+                                                Log.d("ansen", "thread-id--2-->" + Thread.currentThread().getId());
+                                            }
+                                        });
+                            }
+                        }, 2000L);
+
                     }
                 });
             }
         });
+
+        //测试主线程切换相关
+//        AppExecutors.io().execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                Log.d("ansen", "thread-name->" + Thread.currentThread().getName());
+//                Log.d("ansen", "thread-id->" + Thread.currentThread().getId());
+//
+//                AppExecutors.mainThread().execute(new Runnable() {
+//
+//                    @Override
+//                    public void run() {
+//                        Log.d("ansen", "thread-name--1-->" + Thread.currentThread().getName());
+//                        Log.d("ansen", "thread-id--1-->" + Thread.currentThread().getId());
+//                    }
+//                });
+//            }
+//        });
 
 
     }
